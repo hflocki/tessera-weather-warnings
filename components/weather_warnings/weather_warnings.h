@@ -9,6 +9,9 @@
 namespace esphome::weather_warnings {
 
 // Where a warning comes from.
+// A warning known only by its sensor's level, without the details of its attributes.
+static constexpr uint8_t NO_SLOT = 255;
+
 enum class Source : uint8_t { DWD, NINA, ADVANCE };
 
 // One warning as the plugin finds it: its source and slot (to read its words from the text sensors), its level from

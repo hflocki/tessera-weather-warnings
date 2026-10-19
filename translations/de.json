@@ -13,7 +13,8 @@
     "dwd": "DWD",
     "nina": "NINA",
     "advance": "Vorabinformation (DWD)",
-    "nina_warning": "NINA-Warnung"
+    "nina_warning": "NINA-Warnung",
+    "level": "Warnstufe {n}"
   },
   "app": {
     "name": "Wetterwarnungen",

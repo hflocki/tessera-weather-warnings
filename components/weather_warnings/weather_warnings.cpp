@@ -43,10 +43,12 @@ static uint32_t parse_time(const std::string &text) {
 }
 
 // NINA's severity as the DWD's levels: Minor 1, Moderate 2, Severe 3, Extreme 4.
+static std::string fold(const std::string &text);
 static int nina_level(const std::string &severity) {
-  if (severity == "Extreme") return 4;
-  if (severity == "Severe") return 3;
-  if (severity == "Moderate") return 2;
+  const std::string s = fold(severity);
+  if (s == "extreme") return 4;
+  if (s == "severe") return 3;
+  if (s == "moderate") return 2;
   return 1;
 }
 
@@ -177,6 +179,9 @@ int WeatherWarnings::collect(Warning *out, bool advance) const {
     out[n++] = {Source::DWD, static_cast<uint8_t>(i), std::max(1, atoi(field(base + D_LEVEL).c_str())),
                 parse_time(field(base + D_START)), parse_time(field(base + D_END))};
   }
+  // The level without the details of its warnings (attributes not there yet): the level alone.
+  if (n == 0 && atoi(field(F_DWD_LEVEL).c_str()) > 0)
+    out[n++] = {Source::DWD, NO_SLOT, std::min(4, atoi(field(F_DWD_LEVEL).c_str())), 0, 0};
   for (int j = 0; j < 2; ++j) {
     const int base = NINA_SLOT[j];
     if (field(base + N_STATE) != "on") continue;
@@ -187,17 +192,20 @@ int WeatherWarnings::collect(Warning *out, bool advance) const {
   if (advance && (known(field(F_ADV_1_HEADLINE)) || known(field(F_ADV_1_NAME))))
     out[n++] = {Source::ADVANCE, 0, std::max(1, atoi(field(F_ADV_1_LEVEL).c_str())), parse_time(field(F_ADV_1_START)),
                 parse_time(field(F_ADV_1_END))};
+  else if (advance && atoi(field(F_ADV_LEVEL).c_str()) > 0)
+    out[n++] = {Source::ADVANCE, NO_SLOT, std::min(4, atoi(field(F_ADV_LEVEL).c_str())), 0, 0};
   return n;
 }
 
 std::string WeatherWarnings::name(const Warning &w) const {
-  if (w.source == Source::NINA) return headline(w);
+  if (w.source == Source::NINA || w.slot == NO_SLOT) return headline(w);
   const int base = w.source == Source::DWD ? DWD_SLOT[w.slot] : F_ADV_1_NAME;
   const std::string &n = field(base + (w.source == Source::DWD ? static_cast<int>(D_NAME) : static_cast<int>(A_NAME)));
   return known(n) ? title_case(n) : headline(w);
 }
 
 std::string WeatherWarnings::headline(const Warning &w) const {
+  if (w.slot == NO_SLOT) return tessera::format(text("level"), w.level);
   switch (w.source) {
     case Source::DWD: return field(DWD_SLOT[w.slot] + D_HEADLINE);
     case Source::NINA: {
@@ -209,6 +217,7 @@ std::string WeatherWarnings::headline(const Warning &w) const {
 }
 
 std::string WeatherWarnings::description(const Warning &w) const {
+  if (w.slot == NO_SLOT) return std::string();
   const std::string &d = w.source == Source::DWD    ? field(DWD_SLOT[w.slot] + D_DESCRIPTION)
                          : w.source == Source::NINA ? field(NINA_SLOT[w.slot] + N_DESCRIPTION)
                                                     : EMPTY;
@@ -240,8 +249,16 @@ class StatusTile : public tessera::Tile {
     snprintf(name_, sizeof name_, "%s", c.name && *c.name ? c.name : plugin_->text("title"));
     advance_ = c.options["advance"] | true;
 
+    // The tint covers the whole tile, its padding too, with the tile's own corners. Floating: it never makes the
+    // tile scroll.
+    const int pl = lv_obj_get_style_pad_left(c.parent, LV_PART_MAIN), pt = lv_obj_get_style_pad_top(c.parent, LV_PART_MAIN);
+    const int pr = lv_obj_get_style_pad_right(c.parent, LV_PART_MAIN);
+    const int pb = lv_obj_get_style_pad_bottom(c.parent, LV_PART_MAIN);
     tint_ = ui::block(c.parent, theme::CARD);
-    place(tint_, 0, 0, width_, height_);
+    lv_obj_add_flag(tint_, LV_OBJ_FLAG_FLOATING);
+    lv_obj_remove_flag(tint_, LV_OBJ_FLAG_CLICKABLE);
+    lv_obj_set_style_radius(tint_, lv_obj_get_style_radius(c.parent, LV_PART_MAIN), 0);
+    place(tint_, -pl, -pt, width_ + pl + pr, height_ + pt + pb);
     lv_obj_set_style_bg_opa(tint_, LV_OPA_TRANSP, 0);
 
     const int title_h = ui::line_height(Font::TITLE), body_h = ui::line_height(Font::BODY);
@@ -270,6 +287,7 @@ class StatusTile : public tessera::Tile {
     if (n == 0) {
       lv_obj_set_style_bg_opa(tint_, LV_OPA_TRANSP, 0);
       ui::set_fill(circle_, Tone::NORMAL, theme::TRACK);
+      lv_obj_set_style_bg_opa(circle_, LV_OPA_COVER, 0);
       // Without a warning in force, an advance warning shows muted, else a quiet shield.
       Warning adv[WeatherWarnings::MAX_WARNINGS];
       const int a = advance_ ? plugin_->collect(adv, true) : 0;
@@ -289,18 +307,20 @@ class StatusTile : public tessera::Tile {
       return;
     }
     const Warning &w = list[0];
-    // The tile takes the level's colour, lightly; the circle fully.
-    lv_obj_set_style_bg_opa(tint_, LV_OPA_20, 0);
+    // The tile takes the level's colour lightly, the circle a little more, the icon fully.
     paint_level(tint_, w.level, true, theme::CARD);
+    lv_obj_set_style_bg_opa(tint_, LV_OPA_10, 0);
     paint_level(circle_, w.level, true, theme::TRACK);
+    lv_obj_set_style_bg_opa(circle_, LV_OPA_30, 0);
     ui::set_text(icon_, ui::icon(icon_of(plugin_->name(w) + " " + plugin_->headline(w))));
-    ui::set_color(icon_, theme::ON_ACCENT);
+    paint_level(icon_, w.level, false, theme::INK);
     ui::set_text(title_, plugin_->name(w));
     ui::set_color(title_, theme::INK);
     std::string sub;
     if (now && w.start > now) sub = tessera::fill(plugin_->text("from"), "time", moment(w.start));
     else if (w.end) sub = tessera::fill(plugin_->text("until"), "time", moment(w.end));
-    if (n > 1) sub += (sub.empty() ? "" : " · ") + tessera::format(plugin_->text("more"), n - 1);
+    if (sub.empty()) sub = plugin_->text(w.source == Source::NINA ? "nina" : "dwd");
+    if (n > 1) sub += " · " + tessera::format(plugin_->text("more"), n - 1);
     ui::set_text(sub_, sub);
     ui::set_color(sub_, theme::INK_SOFT);
   }

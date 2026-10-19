@@ -29,5 +29,40 @@ colour, its icon and headline, when it is in force and where it comes from, and 
 
 - The screen reads the sensors and their attributes itself; a change of the chosen entities builds the screen again.
 - The DWD's first three warnings, its first advance warning and two NINA slots are shown.
-- NINA's headline, severity, text and times come from the attributes of its binary sensors. Home Assistant is moving
-  them to the action `nina.get_details`; where a slot no longer has them, the tile says "NINA warning" in its colour.
+- Without a time the tile names the source ("DWD", "NINA"). A DWD level whose warnings have no details (yet) shows as
+  "Warning level 1".
+
+## NINA with headline and times
+
+Newer Home Assistant versions give NINA's binary sensors only the attribute `id`; the headline, severity, text and
+times come from the action `nina.get_details`. Without them the tile shows "NINA warning" in its colour. A template
+binary sensor brings them back as attributes; choose it instead of the NINA sensor in the plugin's details. Put it in
+`configuration.yaml` (or a file of your `template:` folder), with your sensor in place of
+`binary_sensor.warning_place_1`, once per slot:
+
+```yaml
+template:
+  - triggers:
+      - trigger: state
+        entity_id: binary_sensor.warning_place_1
+      - trigger: homeassistant
+        event: start
+      - trigger: time_pattern
+        minutes: "/10"
+    actions:
+      - action: nina.get_details
+        target:
+          entity_id: binary_sensor.warning_place_1
+        response_variable: nina
+        continue_on_error: true
+    binary_sensor:
+      - name: NINA warning details 1
+        unique_id: nina_warning_details_1
+        state: "{{ is_state('binary_sensor.warning_place_1', 'on') }}"
+        attributes:
+          headline: "{{ ((nina | default({}, true)).get('binary_sensor.warning_place_1') or {}).get('headline', '') }}"
+          severity: "{{ ((nina | default({}, true)).get('binary_sensor.warning_place_1') or {}).get('severity', '') }}"
+          description: "{{ ((nina | default({}, true)).get('binary_sensor.warning_place_1') or {}).get('description', '') }}"
+          start: "{{ ((nina | default({}, true)).get('binary_sensor.warning_place_1') or {}).get('start', '') }}"
+          expires: "{{ ((nina | default({}, true)).get('binary_sensor.warning_place_1') or {}).get('expires', '') }}"
+```
