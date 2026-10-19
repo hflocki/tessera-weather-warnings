@@ -155,6 +155,14 @@ static void paint_level(lv_obj_t *obj, int level, bool fill, theme::Role normal)
   else ui::set_tone(obj, tone, role);
 }
 
+// An object's opacity or fill opacity, written only when it differs: a write redraws the object, so not on every tick.
+static void set_opa(lv_obj_t *obj, lv_opa_t opa) {
+  if (lv_obj_get_style_opa(obj, LV_PART_MAIN) != opa) lv_obj_set_style_opa(obj, opa, 0);
+}
+static void set_bg_opa(lv_obj_t *obj, lv_opa_t opa) {
+  if (lv_obj_get_style_bg_opa(obj, LV_PART_MAIN) != opa) lv_obj_set_style_bg_opa(obj, opa, 0);
+}
+
 static void place(lv_obj_t *obj, int x, int y, int w, int h) {
   lv_obj_set_size(obj, std::max(1, w), std::max(1, h));
   lv_obj_set_pos(obj, x, y);
@@ -285,9 +293,9 @@ class StatusTile : public tessera::Tile {
     Warning list[WeatherWarnings::MAX_WARNINGS];
     const int n = plugin_->collect(list, false);
     if (n == 0) {
-      lv_obj_set_style_bg_opa(tint_, LV_OPA_TRANSP, 0);
+      set_bg_opa(tint_, LV_OPA_TRANSP);
       ui::set_fill(circle_, Tone::NORMAL, theme::TRACK);
-      lv_obj_set_style_bg_opa(circle_, LV_OPA_COVER, 0);
+      set_bg_opa(circle_, LV_OPA_COVER);
       // Without a warning in force, an advance warning shows muted, else a quiet shield.
       Warning adv[WeatherWarnings::MAX_WARNINGS];
       const int a = advance_ ? plugin_->collect(adv, true) : 0;
@@ -309,9 +317,9 @@ class StatusTile : public tessera::Tile {
     const Warning &w = list[0];
     // The tile takes the level's colour lightly, the circle a little more, the icon fully.
     paint_level(tint_, w.level, true, theme::CARD);
-    lv_obj_set_style_bg_opa(tint_, LV_OPA_10, 0);
+    set_bg_opa(tint_, LV_OPA_10);
     paint_level(circle_, w.level, true, theme::TRACK);
-    lv_obj_set_style_bg_opa(circle_, LV_OPA_30, 0);
+    set_bg_opa(circle_, LV_OPA_30);
     ui::set_text(icon_, ui::icon(icon_of(plugin_->name(w) + " " + plugin_->headline(w))));
     paint_level(icon_, w.level, false, theme::INK);
     ui::set_text(title_, plugin_->name(w));
@@ -377,7 +385,7 @@ class WarningsCard : public tessera::Card {
     for (int i = 0; i < MAX_ENTRIES; ++i) {
       Entry &e = entries_[i];
       if (i >= n) {
-        lv_obj_set_style_opa(e.bar, LV_OPA_TRANSP, 0);
+        set_opa(e.bar, LV_OPA_TRANSP);
         ui::set_text(e.icon, "");
         ui::set_text(e.headline, "");
         ui::set_text(e.meta, "");
@@ -388,7 +396,7 @@ class WarningsCard : public tessera::Card {
       const int x = bar_w_ + ui::px(10);
       const int text_h = lines * body_h_;
       const int h = head + body_h_ + (text_h ? ui::px(4) + text_h : 0);
-      lv_obj_set_style_opa(e.bar, LV_OPA_COVER, 0);
+      set_opa(e.bar, LV_OPA_COVER);
       place(e.bar, 0, y, bar_w_, h);
       paint_level(e.bar, w.level, true, theme::TRACK);
       place(e.icon, x, y + (head - icon_h_) / 2, icon_h_, icon_h_);
