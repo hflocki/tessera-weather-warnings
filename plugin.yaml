@@ -1,0 +1,88 @@
+# What a screen gets when it takes this plugin. Tessera includes this file from the screen's <name>.plugins.yaml with
+# the entities chosen in the plugin's details filled in, and adds the components folder beside it. An entity that was
+# not chosen keeps the default, which no entity has, and stays empty.
+defaults:
+  DWD: sensor.warnings_not_chosen
+  DWD_ADVANCE: sensor.warnings_not_chosen
+  NINA_1: binary_sensor.warnings_not_chosen
+  NINA_2: binary_sensor.warnings_not_chosen
+
+# Every value the tile and the card need, read straight from Home Assistant: the DWD warning level and its first three
+# warnings, the first advance warning, and two NINA warning slots (their state and their attributes).
+text_sensor:
+  - { platform: homeassistant, id: warn_dwd_level, entity_id: "${DWD}", internal: true }
+  - { platform: homeassistant, id: warn_dwd_1_name, entity_id: "${DWD}", attribute: warning_1_name, internal: true }
+  - { platform: homeassistant, id: warn_dwd_1_headline, entity_id: "${DWD}", attribute: warning_1_headline, internal: true }
+  - { platform: homeassistant, id: warn_dwd_1_description, entity_id: "${DWD}", attribute: warning_1_description, internal: true }
+  - { platform: homeassistant, id: warn_dwd_1_level, entity_id: "${DWD}", attribute: warning_1_level, internal: true }
+  - { platform: homeassistant, id: warn_dwd_1_start, entity_id: "${DWD}", attribute: warning_1_start, internal: true }
+  - { platform: homeassistant, id: warn_dwd_1_end, entity_id: "${DWD}", attribute: warning_1_end, internal: true }
+  - { platform: homeassistant, id: warn_dwd_2_name, entity_id: "${DWD}", attribute: warning_2_name, internal: true }
+  - { platform: homeassistant, id: warn_dwd_2_headline, entity_id: "${DWD}", attribute: warning_2_headline, internal: true }
+  - { platform: homeassistant, id: warn_dwd_2_description, entity_id: "${DWD}", attribute: warning_2_description, internal: true }
+  - { platform: homeassistant, id: warn_dwd_2_level, entity_id: "${DWD}", attribute: warning_2_level, internal: true }
+  - { platform: homeassistant, id: warn_dwd_2_start, entity_id: "${DWD}", attribute: warning_2_start, internal: true }
+  - { platform: homeassistant, id: warn_dwd_2_end, entity_id: "${DWD}", attribute: warning_2_end, internal: true }
+  - { platform: homeassistant, id: warn_dwd_3_name, entity_id: "${DWD}", attribute: warning_3_name, internal: true }
+  - { platform: homeassistant, id: warn_dwd_3_headline, entity_id: "${DWD}", attribute: warning_3_headline, internal: true }
+  - { platform: homeassistant, id: warn_dwd_3_description, entity_id: "${DWD}", attribute: warning_3_description, internal: true }
+  - { platform: homeassistant, id: warn_dwd_3_level, entity_id: "${DWD}", attribute: warning_3_level, internal: true }
+  - { platform: homeassistant, id: warn_dwd_3_start, entity_id: "${DWD}", attribute: warning_3_start, internal: true }
+  - { platform: homeassistant, id: warn_dwd_3_end, entity_id: "${DWD}", attribute: warning_3_end, internal: true }
+  - { platform: homeassistant, id: warn_adv_level, entity_id: "${DWD_ADVANCE}", internal: true }
+  - { platform: homeassistant, id: warn_adv_1_name, entity_id: "${DWD_ADVANCE}", attribute: warning_1_name, internal: true }
+  - { platform: homeassistant, id: warn_adv_1_headline, entity_id: "${DWD_ADVANCE}", attribute: warning_1_headline, internal: true }
+  - { platform: homeassistant, id: warn_adv_1_level, entity_id: "${DWD_ADVANCE}", attribute: warning_1_level, internal: true }
+  - { platform: homeassistant, id: warn_adv_1_start, entity_id: "${DWD_ADVANCE}", attribute: warning_1_start, internal: true }
+  - { platform: homeassistant, id: warn_adv_1_end, entity_id: "${DWD_ADVANCE}", attribute: warning_1_end, internal: true }
+  - { platform: homeassistant, id: warn_nina_1_state, entity_id: "${NINA_1}", internal: true }
+  - { platform: homeassistant, id: warn_nina_1_headline, entity_id: "${NINA_1}", attribute: headline, internal: true }
+  - { platform: homeassistant, id: warn_nina_1_severity, entity_id: "${NINA_1}", attribute: severity, internal: true }
+  - { platform: homeassistant, id: warn_nina_1_description, entity_id: "${NINA_1}", attribute: description, internal: true }
+  - { platform: homeassistant, id: warn_nina_1_start, entity_id: "${NINA_1}", attribute: start, internal: true }
+  - { platform: homeassistant, id: warn_nina_1_expires, entity_id: "${NINA_1}", attribute: expires, internal: true }
+  - { platform: homeassistant, id: warn_nina_2_state, entity_id: "${NINA_2}", internal: true }
+  - { platform: homeassistant, id: warn_nina_2_headline, entity_id: "${NINA_2}", attribute: headline, internal: true }
+  - { platform: homeassistant, id: warn_nina_2_severity, entity_id: "${NINA_2}", attribute: severity, internal: true }
+  - { platform: homeassistant, id: warn_nina_2_description, entity_id: "${NINA_2}", attribute: description, internal: true }
+  - { platform: homeassistant, id: warn_nina_2_start, entity_id: "${NINA_2}", attribute: start, internal: true }
+  - { platform: homeassistant, id: warn_nina_2_expires, entity_id: "${NINA_2}", attribute: expires, internal: true }
+
+weather_warnings:
+  dwd_level: warn_dwd_level
+  dwd_1_name: warn_dwd_1_name
+  dwd_1_headline: warn_dwd_1_headline
+  dwd_1_description: warn_dwd_1_description
+  dwd_1_level: warn_dwd_1_level
+  dwd_1_start: warn_dwd_1_start
+  dwd_1_end: warn_dwd_1_end
+  dwd_2_name: warn_dwd_2_name
+  dwd_2_headline: warn_dwd_2_headline
+  dwd_2_description: warn_dwd_2_description
+  dwd_2_level: warn_dwd_2_level
+  dwd_2_start: warn_dwd_2_start
+  dwd_2_end: warn_dwd_2_end
+  dwd_3_name: warn_dwd_3_name
+  dwd_3_headline: warn_dwd_3_headline
+  dwd_3_description: warn_dwd_3_description
+  dwd_3_level: warn_dwd_3_level
+  dwd_3_start: warn_dwd_3_start
+  dwd_3_end: warn_dwd_3_end
+  adv_level: warn_adv_level
+  adv_1_name: warn_adv_1_name
+  adv_1_headline: warn_adv_1_headline
+  adv_1_level: warn_adv_1_level
+  adv_1_start: warn_adv_1_start
+  adv_1_end: warn_adv_1_end
+  nina_1_state: warn_nina_1_state
+  nina_1_headline: warn_nina_1_headline
+  nina_1_severity: warn_nina_1_severity
+  nina_1_description: warn_nina_1_description
+  nina_1_start: warn_nina_1_start
+  nina_1_expires: warn_nina_1_expires
+  nina_2_state: warn_nina_2_state
+  nina_2_headline: warn_nina_2_headline
+  nina_2_severity: warn_nina_2_severity
+  nina_2_description: warn_nina_2_description
+  nina_2_start: warn_nina_2_start
+  nina_2_expires: warn_nina_2_expires

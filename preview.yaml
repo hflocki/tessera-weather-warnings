@@ -1,0 +1,24 @@
+# What tools/preview.py shows (docs/PREVIEW.md). The bench builds with plugin.yaml's defaults, so the DWD sensors read
+# sensor.warnings_not_chosen and the NINA slots binary_sensor.warnings_not_chosen here; made-up warnings.
+tiles:
+  - tile: status
+    name: Warnings
+    sizes: [1x1, 2x1]
+
+cards:
+  - { card: warnings }
+
+states:
+  sensor.warnings_not_chosen:
+    state: "2"
+    attributes:
+      warning_count: 1
+      warning_1_name: STURMBÖEN
+      warning_1_headline: Amtliche WARNUNG vor STURMBÖEN
+      warning_1_description: Es treten Sturmböen mit Geschwindigkeiten um 70 km/h aus südwestlicher Richtung auf.
+      warning_1_level: 2
+      warning_1_start: "{now-1h}"
+      warning_1_end: "{now+4h}"
+  binary_sensor.warnings_not_chosen:
+    state: "off"
+    attributes: {}

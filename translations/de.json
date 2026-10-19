@@ -1,0 +1,34 @@
+{
+  "_meta": {
+    "name": "Deutsch"
+  },
+  "screen": {
+    "title": "Warnungen",
+    "none": "Keine Warnungen",
+    "choose": "Sensoren in den Plugin-Details wählen",
+    "until": "bis {time}",
+    "from": "ab {time}",
+    "advance_from": "Vorabinfo ab {time}",
+    "more": "+{n}",
+    "dwd": "DWD",
+    "nina": "NINA",
+    "advance": "Vorabinformation (DWD)",
+    "nina_warning": "NINA-Warnung"
+  },
+  "app": {
+    "name": "Wetterwarnungen",
+    "summary": "DWD- und NINA-Warnungen auf einer Kachel in der Farbe der Warnstufe; ein Tipp zeigt alle.",
+    "tile_name": "Wetterwarnungen",
+    "tile_example": "Sturmböen bis 22:00 · +1",
+    "advance": "Vorabinformationen anzeigen",
+    "advance_hint": "Ohne aktuelle Warnung zeigt die Kachel die Vorabinformation des DWD, gedämpft.",
+    "card_name": "Alle Warnungen",
+    "input_dwd": "DWD aktuelle Warnstufe",
+    "input_dwd_hint": "Der Sensor ..._current_warning_level der Integration DWD Weather Warnings.",
+    "input_dwd_advance": "DWD Vorabwarnstufe",
+    "input_dwd_advance_hint": "Der Sensor ..._advance_warning_level, für kommende Warnungen. Darf leer bleiben.",
+    "input_nina_1": "NINA-Warnung 1",
+    "input_nina_hint": "Ein Warn-Slot der NINA-Integration, z. B. binary_sensor.warning_<ort>_1. Darf leer bleiben.",
+    "input_nina_2": "NINA-Warnung 2"
+  }
+}
