@@ -1,5 +1,6 @@
 #include "weather_warnings.h"
 #include <algorithm>
+#include <cmath>
 #include <cctype>
 #include <cstdio>
 #include <cstdlib>
@@ -11,6 +12,27 @@ namespace esphome::weather_warnings {
 using tessera::Font;
 using tessera::Tone;
 namespace ui = tessera::ui;
+
+// ---- Readable colours ---------------------------------------------------------------------------------------------
+
+// A colour's luminance and the WCAG contrast of two: amber or yellow words on the light look's white card fall under
+// what a person reads, so there they take the ink instead; on the dark look they keep their colour.
+static float luminance(lv_color_t c) {
+  auto channel = [](uint8_t v) {
+    const float s = v / 255.0f;
+    return s <= 0.03928f ? s / 12.92f : std::pow((s + 0.055f) / 1.055f, 2.4f);
+  };
+  return 0.2126f * channel(c.red) + 0.7152f * channel(c.green) + 0.0722f * channel(c.blue);
+}
+static bool reads_on_card(lv_color_t c) {
+  const float a = luminance(c), b = luminance(ui::color(theme::CARD));
+  return (std::max(a, b) + 0.05f) / (std::min(a, b) + 0.05f) >= 3.0f;
+}
+// A label (words or an icon) in a tone's or a role's colour where that reads on the card, else in the ink.
+static void set_readable(lv_obj_t *label, tessera::Tone tone, theme::Role role) {
+  if (reads_on_card(ui::tone_color(tone, role))) ui::set_tone(label, tone, role);
+  else ui::set_color(label, theme::INK);
+}
 
 static const std::string EMPTY;
 
@@ -152,7 +174,7 @@ static void paint_level(lv_obj_t *obj, int level, bool fill, theme::Role normal)
     default: break;
   }
   if (fill) ui::set_fill(obj, tone, role);
-  else ui::set_tone(obj, tone, role);
+  else set_readable(obj, tone, role);
 }
 
 // An object's opacity or fill opacity, written only when it differs: a write redraws the object, so not on every tick.
@@ -166,6 +188,14 @@ static void set_bg_opa(lv_obj_t *obj, lv_opa_t opa) {
 static void place(lv_obj_t *obj, int x, int y, int w, int h) {
   lv_obj_set_size(obj, std::max(1, w), std::max(1, h));
   lv_obj_set_pos(obj, x, y);
+}
+
+// A label inside a circle: a child of it, so the two are one part, centred in it.
+static void inside(lv_obj_t *circle, lv_obj_t *label, int w, int h, int dy = 0) {
+  lv_obj_set_style_pad_all(circle, 0, 0);
+  lv_obj_remove_flag(circle, LV_OBJ_FLAG_SCROLLABLE);
+  lv_obj_set_size(label, std::max(1, w), std::max(1, h));
+  lv_obj_align(label, LV_ALIGN_CENTER, 0, dy);
 }
 
 const std::string &WeatherWarnings::field(int index) const {
@@ -277,10 +307,10 @@ class StatusTile : public tessera::Tile {
     circle_ = ui::block(c.parent, theme::TRACK);
     lv_obj_set_style_radius(circle_, LV_RADIUS_CIRCLE, 0);
     place(circle_, 0, cy - dia_ / 2, dia_, dia_);
-    icon_ = ui::label(c.parent, big_icon_ ? Font::ICON : Font::ICON_SMALL, theme::MUTED);
+    icon_ = ui::label(circle_, big_icon_ ? Font::ICON : Font::ICON_SMALL, theme::MUTED);
     lv_obj_set_style_text_align(icon_, LV_TEXT_ALIGN_CENTER, 0);
     const int ih = ui::line_height(big_icon_ ? Font::ICON : Font::ICON_SMALL);
-    place(icon_, 0, cy - ih / 2, dia_, ih);
+    inside(circle_, icon_, dia_, ih);
 
     const int x = dia_ + ui::px(10), w = width_ - x;
     title_ = ui::label(c.parent, Font::TITLE, theme::INK);
@@ -295,7 +325,7 @@ class StatusTile : public tessera::Tile {
     if (n == 0) {
       set_bg_opa(tint_, LV_OPA_TRANSP);
       ui::set_fill(circle_, Tone::NORMAL, theme::TRACK);
-      set_bg_opa(circle_, LV_OPA_COVER);
+      set_bg_opa(circle_, LV_OPA_60);
       // Without a warning in force, an advance warning shows muted, else a quiet shield.
       Warning adv[WeatherWarnings::MAX_WARNINGS];
       const int a = advance_ ? plugin_->collect(adv, true) : 0;
