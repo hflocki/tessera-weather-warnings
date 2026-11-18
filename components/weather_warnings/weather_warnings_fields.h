@@ -41,7 +41,9 @@ enum Field : int {
   F_NINA_2_DESCRIPTION = 34,
   F_NINA_2_START = 35,
   F_NINA_2_EXPIRES = 36,
-  FIELD_COUNT = 37
+  F_DWD_COUNT = 37,
+  F_ADV_COUNT = 38,
+  FIELD_COUNT = 39
 };
 
 // The first field of a slot, and the offset of each value in it.

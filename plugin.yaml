@@ -7,10 +7,13 @@ defaults:
   NINA_1: binary_sensor.warnings_not_chosen
   NINA_2: binary_sensor.warnings_not_chosen
 
-# Every value the tile and the card need, read straight from Home Assistant: the DWD warning level and its first three
-# warnings, the first advance warning, and two NINA warning slots (their state and their attributes).
+# Every value the tile and the card need, read straight from Home Assistant: the DWD warning level, how many warnings
+# there are and the first three of them, the first advance warning, and two NINA warning slots (their state and their attributes).
 text_sensor:
   - { platform: homeassistant, id: warn_dwd_level, entity_id: "${DWD}", internal: true }
+  # Home Assistant sends nothing when an attribute is removed, so a gone warning would keep its old words here; the
+  # count is always there and says which slots still hold one.
+  - { platform: homeassistant, id: warn_dwd_count, entity_id: "${DWD}", attribute: warning_count, internal: true }
   - { platform: homeassistant, id: warn_dwd_1_name, entity_id: "${DWD}", attribute: warning_1_name, internal: true }
   - { platform: homeassistant, id: warn_dwd_1_headline, entity_id: "${DWD}", attribute: warning_1_headline, internal: true }
   - { platform: homeassistant, id: warn_dwd_1_description, entity_id: "${DWD}", attribute: warning_1_description, internal: true }
@@ -30,6 +33,7 @@ text_sensor:
   - { platform: homeassistant, id: warn_dwd_3_start, entity_id: "${DWD}", attribute: warning_3_start, internal: true }
   - { platform: homeassistant, id: warn_dwd_3_end, entity_id: "${DWD}", attribute: warning_3_end, internal: true }
   - { platform: homeassistant, id: warn_adv_level, entity_id: "${DWD_ADVANCE}", internal: true }
+  - { platform: homeassistant, id: warn_adv_count, entity_id: "${DWD_ADVANCE}", attribute: warning_count, internal: true }
   - { platform: homeassistant, id: warn_adv_1_name, entity_id: "${DWD_ADVANCE}", attribute: warning_1_name, internal: true }
   - { platform: homeassistant, id: warn_adv_1_headline, entity_id: "${DWD_ADVANCE}", attribute: warning_1_headline, internal: true }
   - { platform: homeassistant, id: warn_adv_1_level, entity_id: "${DWD_ADVANCE}", attribute: warning_1_level, internal: true }
@@ -86,3 +90,5 @@ weather_warnings:
   nina_2_description: warn_nina_2_description
   nina_2_start: warn_nina_2_start
   nina_2_expires: warn_nina_2_expires
+  dwd_count: warn_dwd_count
+  adv_count: warn_adv_count

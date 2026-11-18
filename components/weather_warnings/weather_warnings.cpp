@@ -209,13 +209,26 @@ bool WeatherWarnings::configured() const {
   return known(field(F_DWD_LEVEL)) || known(field(F_NINA_1_STATE)) || known(field(F_NINA_2_STATE));
 }
 
+// How many slots of a DWD sensor hold a warning: its warning_count, or all of them while the count is not known yet.
+// Home Assistant sends nothing for an attribute that is removed, so a slot past the count keeps a stale warning.
+static int slots_in_use(const std::string &count, int slots) {
+  return known(count) ? std::clamp(atoi(count.c_str()), 0, slots) : slots;
+}
+
+// Whether a warning is over: its end is known and lies in the past (0 for an unknown clock or end).
+static bool ended(uint32_t end, uint32_t now) { return end && now && end <= now; }
+
 int WeatherWarnings::collect(Warning *out, bool advance) const {
+  const uint32_t now = tessera::epoch();
   int n = 0;
-  for (int i = 0; i < 3; ++i) {
+  const int dwd_slots = slots_in_use(field(F_DWD_COUNT), 3);
+  for (int i = 0; i < dwd_slots; ++i) {
     const int base = DWD_SLOT[i];
     if (!known(field(base + D_HEADLINE)) && !known(field(base + D_NAME))) continue;
+    const uint32_t end = parse_time(field(base + D_END));
+    if (ended(end, now)) continue;
     out[n++] = {Source::DWD, static_cast<uint8_t>(i), std::max(1, atoi(field(base + D_LEVEL).c_str())),
-                parse_time(field(base + D_START)), parse_time(field(base + D_END))};
+                parse_time(field(base + D_START)), end};
   }
   // The level without the details of its warnings (attributes not there yet): the level alone.
   if (n == 0 && atoi(field(F_DWD_LEVEL).c_str()) > 0)
@@ -223,13 +236,17 @@ int WeatherWarnings::collect(Warning *out, bool advance) const {
   for (int j = 0; j < 2; ++j) {
     const int base = NINA_SLOT[j];
     if (field(base + N_STATE) != "on") continue;
+    const uint32_t end = parse_time(field(base + N_EXPIRES));
+    if (ended(end, now)) continue;
     out[n++] = {Source::NINA, static_cast<uint8_t>(j), nina_level(field(base + N_SEVERITY)),
-                parse_time(field(base + N_START)), parse_time(field(base + N_EXPIRES))};
+                parse_time(field(base + N_START)), end};
   }
   std::stable_sort(out, out + n, [](const Warning &a, const Warning &b) { return a.level > b.level; });
-  if (advance && (known(field(F_ADV_1_HEADLINE)) || known(field(F_ADV_1_NAME))))
+  const uint32_t adv_end = parse_time(field(F_ADV_1_END));
+  if (advance && slots_in_use(field(F_ADV_COUNT), 1) > 0 && !ended(adv_end, now) &&
+      (known(field(F_ADV_1_HEADLINE)) || known(field(F_ADV_1_NAME))))
     out[n++] = {Source::ADVANCE, 0, std::max(1, atoi(field(F_ADV_1_LEVEL).c_str())), parse_time(field(F_ADV_1_START)),
-                parse_time(field(F_ADV_1_END))};
+                adv_end};
   else if (advance && atoi(field(F_ADV_LEVEL).c_str()) > 0)
     out[n++] = {Source::ADVANCE, NO_SLOT, std::min(4, atoi(field(F_ADV_LEVEL).c_str())), 0, 0};
   return n;

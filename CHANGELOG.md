@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.1.3
+- A warning that has ended leaves the tile and the card: the plugin reads the DWD's `warning_count` and shows only
+  the slots it counts, because Home Assistant sends nothing for an attribute that is gone, and a warning past its end
+  is dropped too (#2).
+
 ## 1.1.2
 - The icon sits inside its circle as one part, and an idle circle is lighter, so the grey icon reads in the light look too.
 - Amber and yellow words and icons take the ink on the light look, where they were too faint to read; the dark look keeps its colours.
