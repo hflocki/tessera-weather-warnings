@@ -1,9 +1,11 @@
 # Changelog
 
-## 1.1.3
-- A warning that has ended leaves the tile and the card: the plugin reads the DWD's `warning_count` and shows only
-  the slots it counts, because Home Assistant sends nothing for an attribute that is gone, and a warning past its end
-  is dropped too (#2).
+## 1.2.0
+- NINA is gone: the plugin shows the DWD's warnings only. Its two NINA fields were required by the app, so the plugin
+  could not be added without them (#1), and newer Home Assistant versions give NINA's sensors no text anyway.
+- A warning that has ended leaves the tile and the card: the plugin reads the DWD's `warning_count` and shows only the
+  slots it counts, because Home Assistant sends nothing for an attribute that is gone; a warning past its end is
+  dropped too (#2).
 
 ## 1.1.2
 - The icon sits inside its circle as one part, and an idle circle is lighter, so the grey icon reads in the light look too.

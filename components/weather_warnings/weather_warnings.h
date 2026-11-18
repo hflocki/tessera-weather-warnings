@@ -12,7 +12,7 @@ namespace esphome::weather_warnings {
 // A warning known only by its sensor's level, without the details of its attributes.
 static constexpr uint8_t NO_SLOT = 255;
 
-enum class Source : uint8_t { DWD, NINA, ADVANCE };
+enum class Source : uint8_t { DWD, ADVANCE };
 
 // One warning as the plugin finds it: its source and slot (to read its words from the text sensors), its level from
 // 1 (a weather warning, minor) to 4 (extreme), and when it starts and ends (seconds since 1970, 0 for not known).
@@ -27,7 +27,7 @@ struct Warning {
 // reads from Home Assistant.
 class WeatherWarnings : public Component, public tessera::Plugin {
  public:
-  static constexpr int MAX_WARNINGS = 6;  // three of the DWD, two of NINA, one advance warning
+  static constexpr int MAX_WARNINGS = 4;  // three of the DWD, one advance warning
 
   void setup() override;
   float get_setup_priority() const override { return setup_priority::DATA; }
@@ -38,13 +38,12 @@ class WeatherWarnings : public Component, public tessera::Plugin {
   // The text of a field, "" while it has none.
   const std::string &field(int index) const;
 
-  // The warnings in force, the strongest first (the DWD's before NINA's at the same level); with `advance`, the
-  // advance warning after them. Returns how many.
+  // The warnings in force, the strongest first; with `advance`, the advance warning after them. Returns how many.
   int collect(Warning *out, bool advance) const;
-  // Whether any entity was chosen at all (the DWD sensor or a NINA slot reports something).
+  // Whether the DWD sensor was chosen at all (it reports something).
   bool configured() const;
 
-  // A warning's words: its short name (DWD "Sturmböen", NINA its headline), its headline and its description.
+  // A warning's words: its short name ("Sturmböen"), its headline and its description.
   std::string name(const Warning &w) const;
   std::string headline(const Warning &w) const;
   std::string description(const Warning &w) const;

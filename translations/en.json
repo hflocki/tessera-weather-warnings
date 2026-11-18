@@ -11,14 +11,12 @@
     "advance_from": "Advance warning from {time}",
     "more": "+{n}",
     "dwd": "DWD",
-    "nina": "NINA",
     "advance": "Advance warning (DWD)",
-    "nina_warning": "NINA warning",
     "level": "Warning level {n}"
   },
   "app": {
     "name": "Weather warnings",
-    "summary": "DWD and NINA warnings on a tile in the colour of their level; a tap shows them all.",
+    "summary": "DWD weather warnings on a tile in the colour of their level; a tap shows them all.",
     "tile_name": "Weather warnings",
     "tile_example": "Gusts until 22:00 · +1",
     "advance": "Show advance warnings",
@@ -27,9 +25,6 @@
     "input_dwd": "DWD current warning level",
     "input_dwd_hint": "The sensor ..._current_warning_level of the DWD Weather Warnings integration.",
     "input_dwd_advance": "DWD advance warning level",
-    "input_dwd_advance_hint": "The sensor ..._advance_warning_level, for warnings to come. May stay empty.",
-    "input_nina_1": "NINA warning 1",
-    "input_nina_hint": "A warning slot of the NINA integration, such as binary_sensor.warning_<place>_1. May stay empty.",
-    "input_nina_2": "NINA warning 2"
+    "input_dwd_advance_hint": "The sensor ..._advance_warning_level of the same integration, for warnings to come."
   }
 }

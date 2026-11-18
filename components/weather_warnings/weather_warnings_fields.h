@@ -29,28 +29,14 @@ enum Field : int {
   F_ADV_1_LEVEL = 22,
   F_ADV_1_START = 23,
   F_ADV_1_END = 24,
-  F_NINA_1_STATE = 25,
-  F_NINA_1_HEADLINE = 26,
-  F_NINA_1_SEVERITY = 27,
-  F_NINA_1_DESCRIPTION = 28,
-  F_NINA_1_START = 29,
-  F_NINA_1_EXPIRES = 30,
-  F_NINA_2_STATE = 31,
-  F_NINA_2_HEADLINE = 32,
-  F_NINA_2_SEVERITY = 33,
-  F_NINA_2_DESCRIPTION = 34,
-  F_NINA_2_START = 35,
-  F_NINA_2_EXPIRES = 36,
-  F_DWD_COUNT = 37,
-  F_ADV_COUNT = 38,
-  FIELD_COUNT = 39
+  F_DWD_COUNT = 25,
+  F_ADV_COUNT = 26,
+  FIELD_COUNT = 27
 };
 
 // The first field of a slot, and the offset of each value in it.
 static constexpr int DWD_SLOT[3] = {F_DWD_1_NAME, F_DWD_2_NAME, F_DWD_3_NAME};
 enum DwdPart : int { D_NAME = 0, D_HEADLINE, D_DESCRIPTION, D_LEVEL, D_START, D_END };
 enum AdvPart : int { A_NAME = 0, A_HEADLINE, A_LEVEL, A_START, A_END };
-static constexpr int NINA_SLOT[2] = {F_NINA_1_STATE, F_NINA_2_STATE};
-enum NinaPart : int { N_STATE = 0, N_HEADLINE, N_SEVERITY, N_DESCRIPTION, N_START, N_EXPIRES };
 
 }  // namespace esphome::weather_warnings

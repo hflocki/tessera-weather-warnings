@@ -4,11 +4,9 @@
 defaults:
   DWD: sensor.warnings_not_chosen
   DWD_ADVANCE: sensor.warnings_not_chosen
-  NINA_1: binary_sensor.warnings_not_chosen
-  NINA_2: binary_sensor.warnings_not_chosen
 
 # Every value the tile and the card need, read straight from Home Assistant: the DWD warning level, how many warnings
-# there are and the first three of them, the first advance warning, and two NINA warning slots (their state and their attributes).
+# there are and the first three of them, and the first advance warning.
 text_sensor:
   - { platform: homeassistant, id: warn_dwd_level, entity_id: "${DWD}", internal: true }
   # Home Assistant sends nothing when an attribute is removed, so a gone warning would keep its old words here; the
@@ -39,18 +37,6 @@ text_sensor:
   - { platform: homeassistant, id: warn_adv_1_level, entity_id: "${DWD_ADVANCE}", attribute: warning_1_level, internal: true }
   - { platform: homeassistant, id: warn_adv_1_start, entity_id: "${DWD_ADVANCE}", attribute: warning_1_start, internal: true }
   - { platform: homeassistant, id: warn_adv_1_end, entity_id: "${DWD_ADVANCE}", attribute: warning_1_end, internal: true }
-  - { platform: homeassistant, id: warn_nina_1_state, entity_id: "${NINA_1}", internal: true }
-  - { platform: homeassistant, id: warn_nina_1_headline, entity_id: "${NINA_1}", attribute: headline, internal: true }
-  - { platform: homeassistant, id: warn_nina_1_severity, entity_id: "${NINA_1}", attribute: severity, internal: true }
-  - { platform: homeassistant, id: warn_nina_1_description, entity_id: "${NINA_1}", attribute: description, internal: true }
-  - { platform: homeassistant, id: warn_nina_1_start, entity_id: "${NINA_1}", attribute: start, internal: true }
-  - { platform: homeassistant, id: warn_nina_1_expires, entity_id: "${NINA_1}", attribute: expires, internal: true }
-  - { platform: homeassistant, id: warn_nina_2_state, entity_id: "${NINA_2}", internal: true }
-  - { platform: homeassistant, id: warn_nina_2_headline, entity_id: "${NINA_2}", attribute: headline, internal: true }
-  - { platform: homeassistant, id: warn_nina_2_severity, entity_id: "${NINA_2}", attribute: severity, internal: true }
-  - { platform: homeassistant, id: warn_nina_2_description, entity_id: "${NINA_2}", attribute: description, internal: true }
-  - { platform: homeassistant, id: warn_nina_2_start, entity_id: "${NINA_2}", attribute: start, internal: true }
-  - { platform: homeassistant, id: warn_nina_2_expires, entity_id: "${NINA_2}", attribute: expires, internal: true }
 
 weather_warnings:
   dwd_level: warn_dwd_level
@@ -78,17 +64,5 @@ weather_warnings:
   adv_1_level: warn_adv_1_level
   adv_1_start: warn_adv_1_start
   adv_1_end: warn_adv_1_end
-  nina_1_state: warn_nina_1_state
-  nina_1_headline: warn_nina_1_headline
-  nina_1_severity: warn_nina_1_severity
-  nina_1_description: warn_nina_1_description
-  nina_1_start: warn_nina_1_start
-  nina_1_expires: warn_nina_1_expires
-  nina_2_state: warn_nina_2_state
-  nina_2_headline: warn_nina_2_headline
-  nina_2_severity: warn_nina_2_severity
-  nina_2_description: warn_nina_2_description
-  nina_2_start: warn_nina_2_start
-  nina_2_expires: warn_nina_2_expires
   dwd_count: warn_dwd_count
   adv_count: warn_adv_count

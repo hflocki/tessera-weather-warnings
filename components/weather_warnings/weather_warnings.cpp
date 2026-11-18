@@ -64,16 +64,6 @@ static uint32_t parse_time(const std::string &text) {
   return t > 0 ? static_cast<uint32_t>(t) : 0;
 }
 
-// NINA's severity as the DWD's levels: Minor 1, Moderate 2, Severe 3, Extreme 4.
-static std::string fold(const std::string &text);
-static int nina_level(const std::string &severity) {
-  const std::string s = fold(severity);
-  if (s == "extreme") return 4;
-  if (s == "severe") return 3;
-  if (s == "moderate") return 2;
-  return 1;
-}
-
 // Lowercase, umlauts as their plain vowel and ß as ss, for finding words.
 static std::string fold(const std::string &text) {
   std::string out;
@@ -206,7 +196,7 @@ const std::string &WeatherWarnings::field(int index) const {
 static bool known(const std::string &s) { return !s.empty() && s != "unknown" && s != "unavailable" && s != "None"; }
 
 bool WeatherWarnings::configured() const {
-  return known(field(F_DWD_LEVEL)) || known(field(F_NINA_1_STATE)) || known(field(F_NINA_2_STATE));
+  return known(field(F_DWD_LEVEL));
 }
 
 // How many slots of a DWD sensor hold a warning: its warning_count, or all of them while the count is not known yet.
@@ -233,14 +223,6 @@ int WeatherWarnings::collect(Warning *out, bool advance) const {
   // The level without the details of its warnings (attributes not there yet): the level alone.
   if (n == 0 && atoi(field(F_DWD_LEVEL).c_str()) > 0)
     out[n++] = {Source::DWD, NO_SLOT, std::min(4, atoi(field(F_DWD_LEVEL).c_str())), 0, 0};
-  for (int j = 0; j < 2; ++j) {
-    const int base = NINA_SLOT[j];
-    if (field(base + N_STATE) != "on") continue;
-    const uint32_t end = parse_time(field(base + N_EXPIRES));
-    if (ended(end, now)) continue;
-    out[n++] = {Source::NINA, static_cast<uint8_t>(j), nina_level(field(base + N_SEVERITY)),
-                parse_time(field(base + N_START)), end};
-  }
   std::stable_sort(out, out + n, [](const Warning &a, const Warning &b) { return a.level > b.level; });
   const uint32_t adv_end = parse_time(field(F_ADV_1_END));
   if (advance && slots_in_use(field(F_ADV_COUNT), 1) > 0 && !ended(adv_end, now) &&
@@ -253,7 +235,7 @@ int WeatherWarnings::collect(Warning *out, bool advance) const {
 }
 
 std::string WeatherWarnings::name(const Warning &w) const {
-  if (w.source == Source::NINA || w.slot == NO_SLOT) return headline(w);
+  if (w.slot == NO_SLOT) return headline(w);
   const int base = w.source == Source::DWD ? DWD_SLOT[w.slot] : F_ADV_1_NAME;
   const std::string &n = field(base + (w.source == Source::DWD ? static_cast<int>(D_NAME) : static_cast<int>(A_NAME)));
   return known(n) ? title_case(n) : headline(w);
@@ -263,19 +245,13 @@ std::string WeatherWarnings::headline(const Warning &w) const {
   if (w.slot == NO_SLOT) return tessera::format(text("level"), w.level);
   switch (w.source) {
     case Source::DWD: return field(DWD_SLOT[w.slot] + D_HEADLINE);
-    case Source::NINA: {
-      const std::string &h = field(NINA_SLOT[w.slot] + N_HEADLINE);
-      return known(h) ? h : std::string(text("nina_warning"));
-    }
     default: return field(F_ADV_1_HEADLINE);
   }
 }
 
 std::string WeatherWarnings::description(const Warning &w) const {
   if (w.slot == NO_SLOT) return std::string();
-  const std::string &d = w.source == Source::DWD    ? field(DWD_SLOT[w.slot] + D_DESCRIPTION)
-                         : w.source == Source::NINA ? field(NINA_SLOT[w.slot] + N_DESCRIPTION)
-                                                    : EMPTY;
+  const std::string &d = w.source == Source::DWD ? field(DWD_SLOT[w.slot] + D_DESCRIPTION) : EMPTY;
   return known(d) ? plain_text(d) : std::string();
 }
 
@@ -374,7 +350,7 @@ class StatusTile : public tessera::Tile {
     std::string sub;
     if (now && w.start > now) sub = tessera::fill(plugin_->text("from"), "time", moment(w.start));
     else if (w.end) sub = tessera::fill(plugin_->text("until"), "time", moment(w.end));
-    if (sub.empty()) sub = plugin_->text(w.source == Source::NINA ? "nina" : "dwd");
+    if (sub.empty()) sub = plugin_->text("dwd");
     if (n > 1) sub += " · " + tessera::format(plugin_->text("more"), n - 1);
     ui::set_text(sub_, sub);
     ui::set_color(sub_, theme::INK_SOFT);
@@ -470,7 +446,7 @@ class WarningsCard : public tessera::Card {
     lv_obj_t *bar{}, *icon{}, *headline{}, *meta{}, *text{};
   };
 
-  // "Mon 18:00 – Tue 06:00 · DWD", "until 22:00 · NINA", "Advance warning · from Wed 06:00".
+  // "Mon 18:00 – Tue 06:00 · DWD", "until 22:00 · DWD", "from Wed 06:00 · Advance warning (DWD)".
   std::string meta(const Warning &w, uint32_t now) const {
     std::string when;
     if (w.start && w.end && (!now || w.start > now))
@@ -479,7 +455,7 @@ class WarningsCard : public tessera::Card {
       when = tessera::fill(plugin_->text("until"), "time", moment(w.end));
     else if (w.start)
       when = tessera::fill(plugin_->text("from"), "time", moment(w.start));
-    const char *source = w.source == Source::DWD ? "dwd" : w.source == Source::NINA ? "nina" : "advance";
+    const char *source = w.source == Source::DWD ? "dwd" : "advance";
     return when.empty() ? std::string(plugin_->text(source)) : when + " · " + plugin_->text(source);
   }
 
