@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <cstdio>
 #include <string>
 #include "esphome/core/component.h"
 #include "esphome/components/text_sensor/text_sensor.h"
@@ -48,7 +49,12 @@ class WeatherWarnings : public Component, public tessera::Plugin {
   std::string headline(const Warning &w) const;
   std::string description(const Warning &w) const;
 
+  // The map region of the tile that last opened the card ("nrw", "" for none), so the card shows the same map.
+  void set_region(const char *region) const { snprintf(region_, sizeof region_, "%s", region ? region : ""); }
+  const char *region() const { return region_; }
+
  protected:
+  mutable char region_[8]{};
   text_sensor::TextSensor *fields_[FIELD_COUNT]{};
 };
 

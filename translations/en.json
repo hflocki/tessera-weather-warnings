@@ -16,7 +16,7 @@
   },
   "app": {
     "name": "Weather warnings",
-    "summary": "DWD weather warnings on a tile in the colour of their level; a tap shows them all.",
+    "summary": "DWD weather warnings in the colour of their level, with their text and the DWD's map on a larger tile.",
     "tile_name": "Weather warnings",
     "tile_example": "Gusts until 22:00 · +1",
     "advance": "Show advance warnings",
@@ -25,6 +25,22 @@
     "input_dwd": "DWD current warning level",
     "input_dwd_hint": "The sensor ..._current_warning_level of the DWD Weather Warnings integration.",
     "input_dwd_advance": "DWD advance warning level",
-    "input_dwd_advance_hint": "The sensor ..._advance_warning_level of the same integration, for warnings to come."
+    "input_dwd_advance_hint": "The sensor ..._advance_warning_level of the same integration, for warnings to come.",
+    "map": "Warning map",
+    "map_hint": "The DWD's map of a region beside the warnings: on the tile from 2 x 1, and on the card. Not on boards without pictures.",
+    "map_none": "None",
+    "map_de": "Germany",
+    "map_baw": "Baden-Württemberg",
+    "map_bay": "Bavaria",
+    "map_bbb": "Berlin and Brandenburg",
+    "map_hes": "Hesse",
+    "map_mvp": "Mecklenburg-Western Pomerania",
+    "map_nds": "Lower Saxony and Bremen",
+    "map_nrw": "North Rhine-Westphalia",
+    "map_rps": "Rhineland-Palatinate and Saarland",
+    "map_saa": "Saxony-Anhalt",
+    "map_sac": "Saxony",
+    "map_shh": "Schleswig-Holstein and Hamburg",
+    "map_thu": "Thuringia"
   }
 }

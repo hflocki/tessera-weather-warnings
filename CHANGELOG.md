@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.3.0
+- The tile grows up to 4 x 3. From two rows it shows every warning with its headline in its level's colour, its time
+  and its text, as the card does; one row high it stays as before.
+- New option **Warning map**: the DWD's map of your region (Germany or a federal state) beside the warnings, on the
+  tile from 2 x 1 and on the card. The app fetches the picture from www.dwd.de; boards without pictures (CYD) show none.
+- The headlines on the card take their level's colour.
+
 ## 1.2.0
 - NINA is gone: the plugin shows the DWD's warnings only. Its two NINA fields were required by the app, so the plugin
   could not be added without them (#1), and newer Home Assistant versions give NINA's sensors no text anyway.

@@ -264,11 +264,113 @@ static std::string moment(uint32_t t) {
   return tessera::days_from_today(t) == 0 ? clock : tessera::date_text(t) + " " + clock;
 }
 
+// ---- The DWD's warning map ----------------------------------------------------------------------------------------
+
+// The address of the DWD's map of a region ("nrw", "de"), "" for none. Only the regions the manifest offers.
+static std::string map_url(const char *region) {
+  static const char *const REGIONS[] = {"de",  "baw", "bay", "bbb", "hes", "mvp", "nds",
+                                        "nrw", "rps", "saa", "sac", "shh", "thu"};
+  for (const char *r : REGIONS)
+    if (region && strcmp(region, r) == 0)
+      return std::string("https://www.dwd.de/DWD/warnungen/warnapp_gemeinden/json/warnungen_gemeinde_map_") + r + ".png";
+  return std::string();
+}
+
+// ---- A list of warnings -------------------------------------------------------------------------------------------
+
+// Warnings one under the other, the strongest first: a bar of its level's colour, its icon and headline in that
+// colour, when it is in force and where it comes from, and its description in as many lines as its share allows.
+// The card shows it over its room, a tile of two rows or more beside the map.
+class WarningList {
+ public:
+  static constexpr int MAX_ENTRIES = WeatherWarnings::MAX_WARNINGS;
+
+  void create(lv_obj_t *parent, int gap) {
+    title_h_ = ui::line_height(Font::TITLE);
+    body_h_ = ui::line_height(Font::BODY);
+    icon_h_ = ui::line_height(Font::ICON_SMALL);
+    gap_ = gap;
+    bar_w_ = ui::px(ui::large() ? 6 : 4);
+    for (Entry &e : entries_) {
+      e.bar = ui::block(parent, theme::TRACK);
+      e.icon = ui::label(parent, Font::ICON_SMALL, theme::MUTED);
+      e.headline = ui::label(parent, Font::TITLE, theme::INK);
+      e.meta = ui::label(parent, Font::BODY, theme::MUTED);
+      e.text = ui::text(parent, Font::BODY, theme::INK_SOFT);
+    }
+  }
+
+  // The first `n` warnings of `list` in the box x0, y0, w, h; the other entries empty.
+  void paint(const WeatherWarnings *plugin, const Warning *list, int n, int x0, int y0, int w, int h, uint32_t now) {
+    n = std::min(n, MAX_ENTRIES);
+    const int head = std::max(title_h_, icon_h_);
+    // Only as many warnings as have room for their head and time; each a share of the height.
+    const int fits = std::max(1, (h + gap_) / (head + body_h_ + gap_));
+    n = std::min(n, fits);
+    const int share = n ? (h - (n - 1) * gap_) / n : 0;
+    const int lines = std::max(0, std::min(n == 1 ? 40 : 5, (share - head - body_h_ - ui::px(4)) / body_h_));
+    int y = y0;
+    for (int i = 0; i < MAX_ENTRIES; ++i) {
+      Entry &e = entries_[i];
+      if (i >= n) {
+        set_opa(e.bar, LV_OPA_TRANSP);
+        ui::set_text(e.icon, "");
+        ui::set_text(e.headline, "");
+        ui::set_text(e.meta, "");
+        ui::set_text(e.text, "");
+        continue;
+      }
+      const Warning &wa = list[i];
+      const int x = x0 + bar_w_ + ui::px(10), tw = std::max(1, w - (x - x0));
+      const int text_h = lines * body_h_;
+      const int eh = head + body_h_ + (text_h ? ui::px(4) + text_h : 0);
+      set_opa(e.bar, LV_OPA_COVER);
+      place(e.bar, x0, y, bar_w_, eh);
+      paint_level(e.bar, wa.level, true, theme::TRACK);
+      place(e.icon, x, y + (head - icon_h_) / 2, icon_h_, icon_h_);
+      ui::set_text(e.icon, ui::icon(icon_of(plugin->name(wa) + " " + plugin->headline(wa))));
+      paint_level(e.icon, wa.level, false, theme::MUTED);
+      place(e.headline, x + icon_h_ + ui::px(8), y + (head - title_h_) / 2, tw - icon_h_ - ui::px(8), title_h_);
+      ui::set_text(e.headline, plugin->headline(wa));
+      paint_level(e.headline, wa.level, false, theme::INK);
+      place(e.meta, x, y + head, tw, body_h_);
+      ui::set_text(e.meta, meta(plugin, wa, now));
+      ui::set_color(e.meta, theme::MUTED);
+      place(e.text, x, y + head + body_h_ + ui::px(4), tw, std::max(1, text_h));
+      ui::set_text(e.text, text_h ? plugin->description(wa) : "");
+      ui::set_color(e.text, theme::INK_SOFT);
+      y += eh + gap_;
+    }
+  }
+
+ private:
+  struct Entry {
+    lv_obj_t *bar{}, *icon{}, *headline{}, *meta{}, *text{};
+  };
+
+  // "Mon 18:00 – Tue 06:00 · DWD", "until 22:00 · DWD", "from Wed 06:00 · Advance warning (DWD)".
+  static std::string meta(const WeatherWarnings *plugin, const Warning &w, uint32_t now) {
+    std::string when;
+    if (w.start && w.end && (!now || w.start > now))
+      when = moment(w.start) + " – " + moment(w.end);
+    else if (w.end)
+      when = tessera::fill(plugin->text("until"), "time", moment(w.end));
+    else if (w.start)
+      when = tessera::fill(plugin->text("from"), "time", moment(w.start));
+    const char *source = w.source == Source::DWD ? "dwd" : "advance";
+    return when.empty() ? std::string(plugin->text(source)) : when + " · " + plugin->text(source);
+  }
+
+  int title_h_ = 0, body_h_ = 0, icon_h_ = 0, gap_ = 0, bar_w_ = 0;
+  Entry entries_[MAX_ENTRIES];
+};
+
 // ---- The tile -----------------------------------------------------------------------------------------------------
 
-// The strongest warning: its icon in a circle of its level's colour, its short name, until when it lasts and how many
-// more there are; the tile tinted in the level's colour. Without a warning a quiet shield and "No warnings". A tap
-// opens every warning.
+// One row high: the strongest warning, its icon in a circle of its level's colour, its short name, until when it
+// lasts and how many more there are; the tile tinted in the level's colour. Two rows or more: every warning with its
+// text. From two columns, the DWD's map of the chosen region beside it. Without a warning a quiet shield and
+// "No warnings". A tap opens every warning.
 class StatusTile : public tessera::Tile {
  public:
   explicit StatusTile(const WeatherWarnings *plugin) : plugin_(plugin) {}
@@ -279,6 +381,9 @@ class StatusTile : public tessera::Tile {
     tile_ = c.tile;
     snprintf(name_, sizeof name_, "%s", c.name && *c.name ? c.name : plugin_->text("title"));
     advance_ = c.options["advance"] | true;
+    snprintf(region_, sizeof region_, "%s", c.options["map"] | "");
+    big_ = c.rows >= 2;
+    const std::string url = map_url(region_);
 
     // The tint covers the whole tile, its padding too, with the tile's own corners. Floating: it never makes the
     // tile scroll.
@@ -292,8 +397,20 @@ class StatusTile : public tessera::Tile {
     place(tint_, -pl, -pt, width_ + pl + pr, height_ + pt + pb);
     lv_obj_set_style_bg_opa(tint_, LV_OPA_TRANSP, 0);
 
+    // The map at the right: as high as a tile of one row, else up to two fifths of the width.
+    const int gap = ui::px(ui::large() ? 12 : 8);
+    if (!url.empty() && c.columns >= 2 && ui::pictures()) {
+      const int side = big_ ? std::min(width_ * 2 / 5, height_) : std::min(height_, width_ / 2);
+      map_ = ui::picture(c.parent);
+      place(map_, width_ - side, big_ ? 0 : (height_ - side) / 2, side, side);
+      ui::set_picture(map_, url, tessera::Fit::CONTAIN);
+      left_w_ = width_ - side - gap;
+    } else {
+      left_w_ = width_;
+    }
+
     const int title_h = ui::line_height(Font::TITLE), body_h = ui::line_height(Font::BODY);
-    dia_ = std::min({ui::mm(12), height_ - ui::px(8), width_ / 3});
+    dia_ = std::min({ui::mm(12), height_ - ui::px(8), left_w_ / 3});
     dia_ = std::max(dia_, ui::line_height(Font::ICON_SMALL) + ui::px(8));
     big_icon_ = dia_ >= ui::line_height(Font::ICON) + ui::px(8);
     const int cy = height_ / 2;
@@ -305,36 +422,55 @@ class StatusTile : public tessera::Tile {
     const int ih = ui::line_height(big_icon_ ? Font::ICON : Font::ICON_SMALL);
     inside(circle_, icon_, dia_, ih);
 
-    const int x = dia_ + ui::px(10), w = width_ - x;
+    const int x = dia_ + ui::px(10), w = left_w_ - x;
     title_ = ui::label(c.parent, Font::TITLE, theme::INK);
     place(title_, x, cy - (title_h + body_h) / 2, w, title_h);
     sub_ = ui::label(c.parent, Font::BODY, theme::MUTED);
     place(sub_, x, cy - (title_h + body_h) / 2 + title_h, w, body_h);
+
+    if (big_) list_.create(c.parent, ui::px(ui::large() ? 12 : 8));
   }
 
   void on_tick(uint32_t now) override {
     Warning list[WeatherWarnings::MAX_WARNINGS];
+    if (big_) {
+      const int n = plugin_->collect(list, advance_);
+      list_.paint(plugin_, list, n, 0, 0, left_w_, height_, now);
+      if (n > 0) {
+        // The head of the small tile stays empty; the tint follows the strongest warning in force.
+        set_opa(circle_, LV_OPA_TRANSP);
+        ui::set_text(title_, "");
+        ui::set_text(sub_, "");
+        if (list[0].source == Source::DWD) {
+          paint_level(tint_, list[0].level, true, theme::CARD);
+          set_bg_opa(tint_, LV_OPA_10);
+        } else {
+          set_bg_opa(tint_, LV_OPA_TRANSP);
+        }
+        return;
+      }
+      set_opa(circle_, LV_OPA_COVER);
+      quiet();
+      return;
+    }
     const int n = plugin_->collect(list, false);
     if (n == 0) {
-      set_bg_opa(tint_, LV_OPA_TRANSP);
-      ui::set_fill(circle_, Tone::NORMAL, theme::TRACK);
-      set_bg_opa(circle_, LV_OPA_60);
       // Without a warning in force, an advance warning shows muted, else a quiet shield.
       Warning adv[WeatherWarnings::MAX_WARNINGS];
       const int a = advance_ ? plugin_->collect(adv, true) : 0;
       if (a > 0) {
+        set_bg_opa(tint_, LV_OPA_TRANSP);
+        ui::set_fill(circle_, Tone::NORMAL, theme::TRACK);
+        set_bg_opa(circle_, LV_OPA_60);
         ui::set_text(icon_, ui::icon(icon_of(plugin_->name(adv[0]) + " " + plugin_->headline(adv[0]))));
         paint_level(icon_, adv[0].level, false, theme::MUTED);
         ui::set_text(title_, plugin_->name(adv[0]));
         ui::set_text(sub_, tessera::fill(plugin_->text("advance_from"), "time", moment(adv[0].start)));
+        ui::set_color(title_, theme::INK);
+        ui::set_color(sub_, theme::MUTED);
       } else {
-        ui::set_text(icon_, ui::icon(0xF0498));  // shield
-        ui::set_color(icon_, theme::MUTED);
-        ui::set_text(title_, name_);
-        ui::set_text(sub_, plugin_->text(plugin_->configured() ? "none" : "choose"));
+        quiet();
       }
-      ui::set_color(title_, theme::INK);
-      ui::set_color(sub_, theme::MUTED);
       return;
     }
     const Warning &w = list[0];
@@ -358,20 +494,37 @@ class StatusTile : public tessera::Tile {
 
   void on_theme() override { on_tick(tessera::epoch()); }
 
-  void on_tap() override { tessera::open_card(plugin_->plugin_id(), "warnings", "", tile_); }
+  void on_tap() override {
+    plugin_->set_region(region_);
+    tessera::open_card(plugin_->plugin_id(), "warnings", "", tile_);
+  }
 
  private:
+  // No warning: the shield, the tile's name and "No warnings" (or what to choose).
+  void quiet() {
+    set_bg_opa(tint_, LV_OPA_TRANSP);
+    ui::set_fill(circle_, Tone::NORMAL, theme::TRACK);
+    set_bg_opa(circle_, LV_OPA_60);
+    ui::set_text(icon_, ui::icon(0xF0498));  // shield
+    ui::set_color(icon_, theme::MUTED);
+    ui::set_text(title_, name_);
+    ui::set_text(sub_, plugin_->text(plugin_->configured() ? "none" : "choose"));
+    ui::set_color(title_, theme::INK);
+    ui::set_color(sub_, theme::MUTED);
+  }
+
   const WeatherWarnings *plugin_;
-  char name_[48]{};
-  int width_ = 0, height_ = 0, tile_ = -1, dia_ = 0;
-  bool advance_ = true, big_icon_ = false;
-  lv_obj_t *tint_{}, *circle_{}, *icon_{}, *title_{}, *sub_{};
+  char name_[48]{}, region_[8]{};
+  int width_ = 0, height_ = 0, tile_ = -1, dia_ = 0, left_w_ = 0;
+  bool advance_ = true, big_icon_ = false, big_ = false;
+  lv_obj_t *tint_{}, *circle_{}, *icon_{}, *title_{}, *sub_{}, *map_{};
+  WarningList list_;
 };
 
 // ---- The card -----------------------------------------------------------------------------------------------------
 
-// Every warning, the strongest first and the advance warning last: a bar of its level's colour, its icon and headline,
-// when it is in force and where it comes from, and its description in as many lines as the room allows.
+// Every warning, the strongest first and the advance warning last, and the DWD's map of the region the tile that
+// opened it shows, at the right.
 class WarningsCard : public tessera::Card {
  public:
   explicit WarningsCard(const WeatherWarnings *plugin) : plugin_(plugin) {}
@@ -379,20 +532,19 @@ class WarningsCard : public tessera::Card {
   void open(const tessera::CardContext &c) override {
     width_ = c.width;
     height_ = c.height;
-    title_h_ = ui::line_height(Font::TITLE);
-    body_h_ = ui::line_height(Font::BODY);
-    icon_h_ = ui::line_height(Font::ICON_SMALL);
-    gap_ = ui::px(ui::large() ? 16 : 10);
-    bar_w_ = ui::px(ui::large() ? 6 : 4);
-    for (Entry &e : entries_) {
-      e.bar = ui::block(c.parent, theme::TRACK);
-      e.icon = ui::label(c.parent, Font::ICON_SMALL, theme::MUTED);
-      e.headline = ui::label(c.parent, Font::TITLE, theme::INK);
-      e.meta = ui::label(c.parent, Font::BODY, theme::MUTED);
-      e.text = ui::text(c.parent, Font::BODY, theme::INK_SOFT);
+    list_w_ = width_;
+    const int gap = ui::px(ui::large() ? 16 : 10);
+    const std::string url = map_url(plugin_->region());
+    if (!url.empty() && ui::pictures()) {
+      const int side = std::min(width_ * 2 / 5, height_);
+      map_ = ui::picture(c.parent);
+      place(map_, width_ - side, 0, side, side);
+      ui::set_picture(map_, url, tessera::Fit::CONTAIN);
+      list_w_ = width_ - side - gap;
     }
+    list_.create(c.parent, gap);
     note_ = ui::label(c.parent, Font::BODY_LARGE, theme::MUTED);
-    place(note_, 0, 0, width_, ui::line_height(Font::BODY_LARGE));
+    place(note_, 0, 0, list_w_, ui::line_height(Font::BODY_LARGE));
     on_tick(tessera::epoch());
   }
 
@@ -400,69 +552,16 @@ class WarningsCard : public tessera::Card {
     Warning list[WeatherWarnings::MAX_WARNINGS];
     const int n = plugin_->collect(list, true);
     ui::set_text(note_, n ? "" : plugin_->text("none"));
-    // Each warning a share of the height: its head, its time and source, and its description in whole lines.
-    const int share = n ? (height_ - (n - 1) * gap_) / n : 0;
-    const int head = std::max(title_h_, icon_h_);
-    const int lines = std::max(0, std::min(n == 1 ? 40 : 5, (share - head - body_h_ - ui::px(4)) / body_h_));
-    int y = 0;
-    for (int i = 0; i < MAX_ENTRIES; ++i) {
-      Entry &e = entries_[i];
-      if (i >= n) {
-        set_opa(e.bar, LV_OPA_TRANSP);
-        ui::set_text(e.icon, "");
-        ui::set_text(e.headline, "");
-        ui::set_text(e.meta, "");
-        ui::set_text(e.text, "");
-        continue;
-      }
-      const Warning &w = list[i];
-      const int x = bar_w_ + ui::px(10);
-      const int text_h = lines * body_h_;
-      const int h = head + body_h_ + (text_h ? ui::px(4) + text_h : 0);
-      set_opa(e.bar, LV_OPA_COVER);
-      place(e.bar, 0, y, bar_w_, h);
-      paint_level(e.bar, w.level, true, theme::TRACK);
-      place(e.icon, x, y + (head - icon_h_) / 2, icon_h_, icon_h_);
-      ui::set_text(e.icon, ui::icon(icon_of(plugin_->name(w) + " " + plugin_->headline(w))));
-      paint_level(e.icon, w.level, false, theme::MUTED);
-      place(e.headline, x + icon_h_ + ui::px(8), y + (head - title_h_) / 2, width_ - x - icon_h_ - ui::px(8), title_h_);
-      ui::set_text(e.headline, plugin_->headline(w));
-      ui::set_color(e.headline, theme::INK);
-      place(e.meta, x, y + head, width_ - x, body_h_);
-      ui::set_text(e.meta, meta(w, now));
-      ui::set_color(e.meta, theme::MUTED);
-      place(e.text, x, y + head + body_h_ + ui::px(4), width_ - x, std::max(1, text_h));
-      ui::set_text(e.text, text_h ? plugin_->description(w) : "");
-      ui::set_color(e.text, theme::INK_SOFT);
-      y += h + gap_;
-    }
+    list_.paint(plugin_, list, n, 0, 0, list_w_, height_, now);
   }
 
   void on_theme() override { on_tick(tessera::epoch()); }
 
  private:
-  static constexpr int MAX_ENTRIES = WeatherWarnings::MAX_WARNINGS;
-  struct Entry {
-    lv_obj_t *bar{}, *icon{}, *headline{}, *meta{}, *text{};
-  };
-
-  // "Mon 18:00 – Tue 06:00 · DWD", "until 22:00 · DWD", "from Wed 06:00 · Advance warning (DWD)".
-  std::string meta(const Warning &w, uint32_t now) const {
-    std::string when;
-    if (w.start && w.end && (!now || w.start > now))
-      when = moment(w.start) + " – " + moment(w.end);
-    else if (w.end)
-      when = tessera::fill(plugin_->text("until"), "time", moment(w.end));
-    else if (w.start)
-      when = tessera::fill(plugin_->text("from"), "time", moment(w.start));
-    const char *source = w.source == Source::DWD ? "dwd" : "advance";
-    return when.empty() ? std::string(plugin_->text(source)) : when + " · " + plugin_->text(source);
-  }
-
   const WeatherWarnings *plugin_;
-  int width_ = 0, height_ = 0, title_h_ = 0, body_h_ = 0, icon_h_ = 0, gap_ = 0, bar_w_ = 0;
-  Entry entries_[MAX_ENTRIES];
-  lv_obj_t *note_{};
+  int width_ = 0, height_ = 0, list_w_ = 0;
+  WarningList list_;
+  lv_obj_t *note_{}, *map_{};
 };
 
 // ---- The plugin ---------------------------------------------------------------------------------------------------

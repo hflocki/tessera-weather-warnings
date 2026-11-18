@@ -1,9 +1,9 @@
 # Weather warnings of the DWD from Home Assistant: a tile with the strongest warning, coloured by its level,
 # and a card with every warning and its text. Every field is explained in docs/MANIFEST.md of tessera-plugins.
 id: weather_warnings
-version: 1.2.0
-# 0.9: Tone::GOOD, ui::set_fill and one-line labels; 0.10: ui::text for the descriptions.
-api: "0.10"
+version: 1.3.0
+# 0.9: Tone::GOOD, ui::set_fill and one-line labels; 0.10: ui::text and pictures on a tile; 0.13: a picture on a card.
+api: "0.13"
 icon: alert-circle
 maintainer: hflocki
 license: MIT
@@ -13,10 +13,15 @@ requires:
   esphome: 2026.6.2
 boards: any
 flash_kb: 16
+# The DWD's warning map comes from www.dwd.de, fetched by the app (README, "Privacy").
+attributes: [cloud]
+privacy: https://github.com/hflocki/tessera-weather-warnings#privacy
 
 permissions:
   # The screen reads the chosen entities and their attributes itself.
   read_entities: ["{dwd}", "{dwd_advance}"]
+  # The DWD's warning map of a region, a PNG the app fetches when a tile has a map chosen.
+  network: [www.dwd.de]
 
 inputs:
   # The two DWD Weather Warnings sensors of a region: the current and the advance warning level.
@@ -28,13 +33,34 @@ tiles:
   - id: status
     name: tile_name
     icon: alert-circle
-    sizes: { min: 1x1, max: 3x2 }
-    # A tint, a circle, an icon and two labels.
-    memory: 700
+    sizes: { min: 1x1, max: 4x3 }
+    # A tint, a circle, an icon and two labels; from two rows a list of four warnings; the map.
+    memory: 2000
+    pictures: 1
     example: tile_example
     options:
       - { id: advance, kind: toggle, default: true, label: advance, hint: advance_hint }
+      - id: map
+        kind: choice
+        default: none
+        label: map
+        hint: map_hint
+        choices:
+          - { value: none, label: map_none }
+          - { value: de, label: map_de }
+          - { value: baw, label: map_baw }
+          - { value: bay, label: map_bay }
+          - { value: bbb, label: map_bbb }
+          - { value: hes, label: map_hes }
+          - { value: mvp, label: map_mvp }
+          - { value: nds, label: map_nds }
+          - { value: nrw, label: map_nrw }
+          - { value: rps, label: map_rps }
+          - { value: saa, label: map_saa }
+          - { value: sac, label: map_sac }
+          - { value: shh, label: map_shh }
+          - { value: thu, label: map_thu }
 
 cards:
   # A tap on the tile: every warning with its time, source and text, over the whole width.
-  - { id: warnings, name: card_name, wide: true }
+  - { id: warnings, name: card_name, wide: true, pictures: 1 }

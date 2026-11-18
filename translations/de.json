@@ -16,7 +16,7 @@
   },
   "app": {
     "name": "Wetterwarnungen",
-    "summary": "DWD-Wetterwarnungen auf einer Kachel in der Farbe der Warnstufe; ein Tipp zeigt alle.",
+    "summary": "DWD-Wetterwarnungen in der Farbe ihrer Stufe, auf größeren Kacheln mit Text und DWD-Warnkarte.",
     "tile_name": "Wetterwarnungen",
     "tile_example": "Sturmböen bis 22:00 · +1",
     "advance": "Vorabinformationen anzeigen",
@@ -25,6 +25,22 @@
     "input_dwd": "DWD aktuelle Warnstufe",
     "input_dwd_hint": "Der Sensor ..._current_warning_level der Integration DWD Weather Warnings.",
     "input_dwd_advance": "DWD Vorabwarnstufe",
-    "input_dwd_advance_hint": "Der Sensor ..._advance_warning_level derselben Integration, für kommende Warnungen."
+    "input_dwd_advance_hint": "Der Sensor ..._advance_warning_level derselben Integration, für kommende Warnungen.",
+    "map": "Warnkarte",
+    "map_hint": "Die DWD-Karte einer Region neben den Warnungen: auf der Kachel ab 2 x 1 und auf der Detailkarte. Nicht auf Boards ohne Bilder.",
+    "map_none": "Keine",
+    "map_de": "Deutschland",
+    "map_baw": "Baden-Württemberg",
+    "map_bay": "Bayern",
+    "map_bbb": "Berlin und Brandenburg",
+    "map_hes": "Hessen",
+    "map_mvp": "Mecklenburg-Vorpommern",
+    "map_nds": "Niedersachsen und Bremen",
+    "map_nrw": "Nordrhein-Westfalen",
+    "map_rps": "Rheinland-Pfalz und Saarland",
+    "map_saa": "Sachsen-Anhalt",
+    "map_sac": "Sachsen",
+    "map_shh": "Schleswig-Holstein und Hamburg",
+    "map_thu": "Thüringen"
   }
 }
