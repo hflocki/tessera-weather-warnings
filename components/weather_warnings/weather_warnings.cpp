@@ -175,6 +175,14 @@ static void set_bg_opa(lv_obj_t *obj, lv_opa_t opa) {
   if (lv_obj_get_style_bg_opa(obj, LV_PART_MAIN) != opa) lv_obj_set_style_bg_opa(obj, opa, 0);
 }
 
+// Shows or hides a part: an empty part is hidden rather than left somewhere, so it never lies outside the tile.
+static void show(lv_obj_t *obj, bool visible) {
+  if (lv_obj_has_flag(obj, LV_OBJ_FLAG_HIDDEN) == visible) {
+    if (visible) lv_obj_remove_flag(obj, LV_OBJ_FLAG_HIDDEN);
+    else lv_obj_add_flag(obj, LV_OBJ_FLAG_HIDDEN);
+  }
+}
+
 static void place(lv_obj_t *obj, int x, int y, int w, int h) {
   lv_obj_set_size(obj, std::max(1, w), std::max(1, h));
   lv_obj_set_pos(obj, x, y);
@@ -313,18 +321,14 @@ class WarningList {
     for (int i = 0; i < MAX_ENTRIES; ++i) {
       Entry &e = entries_[i];
       if (i >= n) {
-        set_opa(e.bar, LV_OPA_TRANSP);
-        ui::set_text(e.icon, "");
-        ui::set_text(e.headline, "");
-        ui::set_text(e.meta, "");
-        ui::set_text(e.text, "");
+        for (lv_obj_t *part : {e.bar, e.icon, e.headline, e.meta, e.text}) show(part, false);
         continue;
       }
+      for (lv_obj_t *part : {e.bar, e.icon, e.headline, e.meta}) show(part, true);
       const Warning &wa = list[i];
       const int x = x0 + bar_w_ + ui::px(10), tw = std::max(1, w - (x - x0));
       const int text_h = lines * body_h_;
       const int eh = head + body_h_ + (text_h ? ui::px(4) + text_h : 0);
-      set_opa(e.bar, LV_OPA_COVER);
       place(e.bar, x0, y, bar_w_, eh);
       paint_level(e.bar, wa.level, true, theme::TRACK);
       place(e.icon, x, y + (head - icon_h_) / 2, icon_h_, icon_h_);
@@ -336,9 +340,14 @@ class WarningList {
       place(e.meta, x, y + head, tw, body_h_);
       ui::set_text(e.meta, meta(plugin, wa, now));
       ui::set_color(e.meta, theme::MUTED);
-      place(e.text, x, y + head + body_h_ + ui::px(4), tw, std::max(1, text_h));
-      ui::set_text(e.text, text_h ? plugin->description(wa) : "");
-      ui::set_color(e.text, theme::INK_SOFT);
+      // The description only where there is room for a line of it; without one it is hidden, not placed below.
+      const std::string text = text_h ? plugin->description(wa) : std::string();
+      show(e.text, !text.empty());
+      if (!text.empty()) {
+        place(e.text, x, y + head + body_h_ + ui::px(4), tw, text_h);
+        ui::set_text(e.text, text);
+        ui::set_color(e.text, theme::INK_SOFT);
+      }
       y += eh + gap_;
     }
   }

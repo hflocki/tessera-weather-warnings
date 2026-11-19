@@ -1,7 +1,7 @@
 # Weather warnings of the DWD from Home Assistant: a tile with the strongest warning, coloured by its level,
 # and a card with every warning and its text. Every field is explained in docs/MANIFEST.md of tessera-plugins.
 id: weather_warnings
-version: 1.3.0
+version: 1.3.1
 # 0.9: Tone::GOOD, ui::set_fill and one-line labels; 0.10: ui::text and pictures on a tile; 0.13: a picture on a card.
 api: "0.13"
 icon: alert-circle

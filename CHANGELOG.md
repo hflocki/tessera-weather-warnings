@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.3.1
+- On a small screen, a tile of two rows with two warnings no longer leaves an empty line below its edge.
+
 ## 1.3.0
 - The tile grows up to 4 x 3. From two rows it shows every warning with its headline in its level's colour, its time
   and its text, as the card does; one row high it stays as before.
